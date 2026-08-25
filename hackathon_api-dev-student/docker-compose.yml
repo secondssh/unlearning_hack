@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  hackathon-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: leejaein/hackathon-api:latest
+    container_name: hackathon-api-server
+    
+    # GPU 지원 (nvidia-docker 필요)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # 포트 매핑
+    ports:
+      - "80:80"      # Nginx (메인 진입점)
+      - "8000:8000"  # FastAPI (선택사항 - 직접 접근)
+      - "8080:8080"  # code-server (선택사항 - 직접 접근)
+    
+    # 환경변수
+    env_file:
+      - test.env # 로컬 테스트용
+    environment:
+      - PYTHONUNBUFFERED=1
+    
+    # 볼륨 마운트 (선택사항)
+    # volumes:
+      # 모델 파일 마운트
+      # - ./models:/workspace/models
+      # 데이터 파일 마운트 (필요시)
+      # - ./data:/workspace/data
+      # 코드 실시간 반영 (개발 시)
+      # - ./app:/workspace/app
+      # - ./utils:/workspace/utils
+    
+    # 재시작 정책
+    restart: unless-stopped
+    
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 로그 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 네트워크 설정 (선택사항)
+networks:
+  default:
+    name: hackathon-network
